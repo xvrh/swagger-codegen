@@ -61,7 +61,7 @@ export class {{classname}} {
     public configuration = new Configuration();
 
     constructor(protected {{#useHttpClient}}httpClient: HttpClient{{/useHttpClient}}{{^useHttpClient}}http: Http{{/useHttpClient}}, @Optional()@Inject(BASE_PATH) basePath: string, @Optional() configuration: Configuration) {
-        if (basePath) {
+        if (basePath !== null && basePath !== undefined) {
             this.basePath = basePath;
         }
         if (configuration) {
