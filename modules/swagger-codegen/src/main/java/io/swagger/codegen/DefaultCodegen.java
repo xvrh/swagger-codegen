@@ -2317,7 +2317,15 @@ public class DefaultCodegen {
         op.requiredParams = addHasMore(requiredParams);
         op.externalDocs = operation.getExternalDocs();
         // legacy support
-        op.nickname = op.operationId;
+
+        // TODO(XaHa): We use "summary" (instead of operationId) to have a prettier method name
+        //  ie:
+        //     service.getDetail()
+        //  instead of
+        //     service.getDetailUsingGET()
+        // But we could have a clash if there is a GET and POST with the same name. We could try to detect that case
+        // and fallback on the "operationId".
+        op.nickname = op.summary;
 
         if (op.allParams.size() > 0) {
             op.hasParams = true;
