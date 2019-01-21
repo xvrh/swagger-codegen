@@ -2318,14 +2318,14 @@ public class DefaultCodegen {
         op.externalDocs = operation.getExternalDocs();
         // legacy support
 
-        // TODO(XaHa): We use "summary" (instead of operationId) to have a prettier method name
+        // TODO(XaHa): We try to have a prettier method name
         //  ie:
         //     service.getDetail()
         //  instead of
         //     service.getDetailUsingGET()
         // But we could have a clash if there is a GET and POST with the same name. We could try to detect that case
         // and fallback on the "operationId".
-        op.nickname = op.summary;
+        op.nickname = prettierOperation(op.operationId);
 
         if (op.allParams.size() > 0) {
             op.hasParams = true;
@@ -2344,6 +2344,16 @@ public class DefaultCodegen {
         //configureDataForTestTemplate(op);
 
         return op;
+    }
+
+    private static String prettierOperation(String operationId) {
+        for (String uglyName : new String[]{"UsingPOST", "UsingGET", "UsingPUT", "UsingDELETE"}) {
+            int index = operationId.indexOf(uglyName);
+            if (index >= 0) {
+                return operationId.substring(0, index);
+            }
+        }
+        return operationId;
     }
 
     /**
