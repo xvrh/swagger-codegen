@@ -348,7 +348,7 @@ public class TypeScriptAngularClientCodegen extends AbstractTypeScriptClientCode
                 complexPath.put("concatenatedParams", Strings.join(concatenatedParams, ", "));
                 complexPaths.add(complexPath);
 
-                op.path = "${" + objs.get("classname").toString() + "." + operationName + "(query)}";
+                op.path = "${" + objs.get("classname").toString() + "." + operationName + "({" + Strings.join(parameters.keySet(), ", ") + "})}";
             }
         }
 
