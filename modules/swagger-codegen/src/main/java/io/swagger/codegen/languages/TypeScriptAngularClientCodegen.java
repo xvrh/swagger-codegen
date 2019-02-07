@@ -2,13 +2,8 @@ package io.swagger.codegen.languages;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import io.swagger.codegen.CliOption;
 import io.swagger.codegen.CodegenModel;
@@ -18,6 +13,7 @@ import io.swagger.codegen.SupportingFile;
 import io.swagger.codegen.utils.SemVer;
 import io.swagger.models.ModelImpl;
 import io.swagger.models.properties.*;
+import joptsimple.internal.Strings;
 
 public class TypeScriptAngularClientCodegen extends AbstractTypeScriptClientCodegen {
     private static final SimpleDateFormat SNAPSHOT_SUFFIX_FORMAT = new SimpleDateFormat("yyyyMMddHHmm");
@@ -246,6 +242,12 @@ public class TypeScriptAngularClientCodegen extends AbstractTypeScriptClientCode
         // Add filename information for api imports
         objs.put("apiFilename", getApiFilenameFromClassname(objs.get("classname").toString()));
 
+        List<Map<String, String>> simplePaths = new LinkedList<>();
+        operations.put("simplePaths", simplePaths);
+
+        List<Map<String, String>> complexPaths = new LinkedList<>();
+        operations.put("complexPaths", complexPaths);
+
         List<CodegenOperation> ops = (List<CodegenOperation>) objs.get("operation");
         for (CodegenOperation op : ops) {
             if ((boolean) additionalProperties.get("useHttpClient")) {
@@ -280,9 +282,10 @@ public class TypeScriptAngularClientCodegen extends AbstractTypeScriptClientCode
                 }
             }
 
-            // Prep a string buffer where we're going to set up our new version of the string.
+            // Prep a string buffer where we're going to set up our new version of the strigetTypeDeclarationng.
             StringBuilder pathBuffer = new StringBuilder();
             StringBuilder parameterName = new StringBuilder();
+            Map<String, String> parameters = new LinkedHashMap<>();
             int insideCurly = 0;
 
             // Iterate through existing string, one character at a time.
@@ -301,11 +304,12 @@ public class TypeScriptAngularClientCodegen extends AbstractTypeScriptClientCode
 
                     // Add the more complicated component instead of just the brace.
                     CodegenParameter parameter = findPathParameterByName(op, parameterName.toString());
-                    pathBuffer.append(toVarName(parameterName.toString()));
+                    pathBuffer.append("params." + toVarName(parameterName.toString()));
                     if (parameter != null && parameter.isDateTime) {
                         pathBuffer.append(".toISOString()");
                     }
                     pathBuffer.append("))}");
+                    parameters.put(parameter.paramName, getTypeDeclaration(parameter.dataType));
                     parameterName.setLength(0);
                     break;
                 default:
@@ -321,6 +325,31 @@ public class TypeScriptAngularClientCodegen extends AbstractTypeScriptClientCode
 
             // Overwrite path to TypeScript template string, after applying everything we just did.
             op.path = pathBuffer.toString();
+
+            // TODO(XaHa): also add non-simple path as a static method that accept the path parameters
+            if (!op.path.contains("${")) {
+                Map<String, String> simplePath = new HashMap<>();
+                String operationName = op.nickname + "Path";
+                simplePath.put("operationName", operationName);
+                simplePath.put("path", op.path);
+                simplePaths.add(simplePath);
+
+                op.path = "${" + objs.get("classname").toString() + "." + operationName + "}";
+            } else {
+                List<String> concatenatedParams = new LinkedList<>();
+                for (String param : parameters.keySet()) {
+                    concatenatedParams.add(param + ": " + parameters.get(param));
+                }
+
+                Map<String, String> complexPath = new HashMap<>();
+                String operationName = op.nickname + "Path";
+                complexPath.put("operationName", operationName);
+                complexPath.put("path", op.path);
+                complexPath.put("concatenatedParams", Strings.join(concatenatedParams, ", "));
+                complexPaths.add(complexPath);
+
+                op.path = "${" + objs.get("classname").toString() + "." + operationName + "(query)}";
+            }
         }
 
         // Add additional filename information for model imports in the services
@@ -400,7 +429,7 @@ public class TypeScriptAngularClientCodegen extends AbstractTypeScriptClientCode
         if (name.length() == 0) {
             return "DefaultService";
         }
-        return initialCaps(name) + "Service";
+        return initialCaps(name);
     }
 
     @Override
@@ -408,7 +437,7 @@ public class TypeScriptAngularClientCodegen extends AbstractTypeScriptClientCode
         if (name.length() == 0) {
             return "default.service";
         }
-        return camelize(name, true) + ".service";
+        return camelize(name, true);
     }
 
     @Override
@@ -451,7 +480,7 @@ public class TypeScriptAngularClientCodegen extends AbstractTypeScriptClientCode
     }
 
     private String getApiFilenameFromClassname(String classname) {
-        String name = classname.substring(0, classname.length() - "Service".length());
+        String name = classname;
         return toApiFilename(name);
     }
 

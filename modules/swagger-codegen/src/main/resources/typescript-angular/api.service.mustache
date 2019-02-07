@@ -84,6 +84,15 @@ export class {{classname}} {
         return false;
     }
 
+{{#simplePaths}}
+    public static readonly {{operationName}} = '{{path}}';
+{{/simplePaths}}
+{{#complexPaths}}
+    public static {{operationName}}(params: { {{concatenatedParams}} }): string {
+        return `{{path}}`;
+    }
+{{/complexPaths}}
+
 {{^useHttpClient}}
 {{! Before HttpClient implementation or method overloading we relied on 2 functions, 1 to return the straight body as json
     and another to get the full response.}}
